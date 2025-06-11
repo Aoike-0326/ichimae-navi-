@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>文化祭ナビ（チェックポイント確認機能付き）</title>
+  <title>文化祭ナビ（完全修正版）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/html5-qrcode"></script>
@@ -17,6 +17,7 @@
       display: none;
       padding: 30px 20px;
       text-align: center;
+      min-height: 100vh;
     }
     .section.active {
       display: block;
@@ -25,7 +26,6 @@
       display: flex;
       flex-direction: column;
       justify-content: center;
-      min-height: 100vh;
     }
     h1, h2, p {
       font-size: 1.6rem;
@@ -86,7 +86,7 @@
   <div id="reader"></div>
 </div>
 
-<!-- 方角補正画面 -->
+<!-- 方角補正 -->
 <div class="section center-screen" id="direction-confirm-screen">
   <h2>QRコードの方向を向いてください</h2>
   <p>QRコードが貼られていた方向にスマホを向けて、「この向きでOK」を押してください。</p>
@@ -99,7 +99,7 @@
   <div class="destination-list" id="destination-list"></div>
 </div>
 
-<!-- 案内確認画面 -->
+<!-- 案内確認 -->
 <div class="section" id="confirm-screen">
   <h2 id="confirm-route">案内を開始しますか？</h2>
   <button class="btn" onclick="startNavigation()">スタート</button>
@@ -113,7 +113,7 @@
   <button class="btn" onclick="scanCheckpoint()">チェックポイントQRを読み取る</button>
 </div>
 
-<!-- ルートエラー画面 -->
+<!-- ルート誤り画面 -->
 <div class="section center-screen" id="route-error-screen">
   <h2>現在地がルートと一致しません</h2>
   <p>違うチェックポイントを読み取ったようです。</p>
@@ -121,8 +121,8 @@
   <button class="btn" onclick="endNavigation()">案内を終了する</button>
 </div>
 
-<!-- 到着画面 -->
-<div class="section" id="goal-screen">
+<!-- 到着 -->
+<div class="section center-screen" id="goal-screen">
   <h2>目的地に到着しました！</h2>
   <p>この後も〇〇高校文化祭をお楽しみください</p>
 </div>
@@ -132,6 +132,7 @@ let cpId = "";
 let qrDir = 0;
 let phoneDir = 0;
 let baseAngle = 0;
+let qrScanner;
 
 const destinations = [
   {
@@ -149,15 +150,21 @@ let currentStep = 0;
 
 function showSection(id) {
   document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
-  const section = document.getElementById(id);
-  if (section) section.classList.add("active");
+  document.getElementById(id)?.classList.add("active");
+  window.scrollTo(0, 0);
+}
+
+function initReader() {
+  const readerDiv = document.getElementById("reader");
+  readerDiv.innerHTML = ""; // Clear previous QR reader
+  qrScanner = new Html5Qrcode("reader");
 }
 
 function showQrScanner() {
+  initReader();
   showSection("qr-scanner-screen");
 
   setTimeout(() => {
-    const qrScanner = new Html5Qrcode("reader");
     qrScanner.start(
       { facingMode: "environment" },
       { fps: 10, qrbox: 300 },
@@ -172,7 +179,6 @@ function showQrScanner() {
       }
     ).catch(err => {
       alert("QR起動に失敗しました：" + err);
-      console.error("起動エラー:", err);
     });
   }, 300);
 }
@@ -226,16 +232,16 @@ function updateNav() {
 }
 
 function scanCheckpoint() {
-  const scanner = new Html5Qrcode("reader");
+  initReader();
   showSection("qr-scanner-screen");
 
   setTimeout(() => {
-    scanner.start(
+    qrScanner.start(
       { facingMode: "environment" },
       { fps: 10, qrbox: 300 },
       msg => {
         const [scannedCp, angle] = msg.split(",");
-        scanner.stop().then(() => {
+        qrScanner.stop().then(() => {
           const expected = currentRoute[currentStep]?.next;
           if (scannedCp === expected) {
             currentStep++;
@@ -250,7 +256,6 @@ function scanCheckpoint() {
       }
     ).catch(err => {
       alert("QR起動に失敗しました：" + err);
-      console.error("起動エラー:", err);
     });
   }, 300);
 }
@@ -265,7 +270,5 @@ function endNavigation() {
   showSection("goal-screen");
 }
 </script>
-
 </body>
 </html>
-
